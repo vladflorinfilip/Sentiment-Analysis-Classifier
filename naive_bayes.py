@@ -27,7 +27,7 @@ class NaiveBayesSentimentClassifier:
         csv_file (str): Path to CSV file with 'column' and 'text' columns
         """
         df = pd.read_csv(csv_file)
-        df['sentiment'] = (df['column'] == 'positive').astype(int)
+        df['sentiment'] = (df['sentiment'] == 'Positive').astype(int)
         return df
 
     def prepare_data(self, df, test_size=0.2, random_state=42):
@@ -40,7 +40,7 @@ class NaiveBayesSentimentClassifier:
         random_state (int): Random seed for reproducibility
         """
         X_train, X_test, y_train, y_test = train_test_split(
-            df['text'], 
+            df['review'], 
             df['sentiment'],
             test_size=test_size,
             random_state=random_state
@@ -157,7 +157,7 @@ def main():
     classifier = NaiveBayesSentimentClassifier()
     
     # Load and prepare data
-    df = classifier.load_data('reviews.csv')
+    df = classifier.load_data('./train_data/reviews.csv')
     X_train, X_test, y_train, y_test = classifier.prepare_data(df)
     
     # Train the model
