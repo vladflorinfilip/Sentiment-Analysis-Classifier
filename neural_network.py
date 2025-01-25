@@ -1,16 +1,23 @@
 import pandas as pd
 import numpy as np
+import re
+import pickle
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 from sklearn.metrics import confusion_matrix
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Embedding, LSTM, Dense, Dropout
+from tensorflow.keras.layers import Embedding, LSTM, Dense, Dropout, Bidirectional
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.regularizers import l2
 import tensorflow as tf
 
+def clean_text(text):
+    text= text.lower()
+    text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
+    return text
+    
 def load_and_preprocess_data(csv_file, max_words=10000, max_len=200):
     """
     Load and preprocess the review data from CSV file with class balance verification
@@ -45,17 +52,17 @@ def load_and_preprocess_data(csv_file, max_words=10000, max_len=200):
     for sentiment, count in sentiment_counts.items():
         percentage = (count/total_samples) * 100
         print(f"{sentiment}: {count:,} reviews ({percentage:.1f}%)")
-    
+
+    # Convert sentiment to binary
+    df['sentiment'] = (df['sentiment'] == 'Positive').astype(int)
+
     # Verify expected class balance
-    n_positive = (df['sentiment'] == 'Positive').sum()
-    n_negative = (df['sentiment'] == 'Negative').sum()
+    n_positive = (df['sentiment'] == 1).sum()
+    n_negative = (df['sentiment'] == 0).sum()
     if n_positive != 5000 or n_negative != 5000:
         print("\nWARNING: Unexpected class distribution!")
         print(f"Expected: 5,000 positive and 5,000 negative")
         print(f"Found: {n_positive:,} positive and {n_negative:,} negative")
-    
-    # Convert sentiment to binary
-    df['sentiment'] = (df['sentiment'] == 'Positive').astype(int)
     
     # Get text length statistics
     df['review_length'] = df['review'].str.len()
@@ -65,6 +72,9 @@ def load_and_preprocess_data(csv_file, max_words=10000, max_len=200):
     print(f"Max length: {df['review_length'].max():,} characters")
     print(f"Min length: {df['review_length'].min():,} characters")
     
+    # Remove special characters and set all to lower case
+    df['review'] = df['review'].apply(clean_text)
+
     # Initialize and fit tokenizer
     print("\nTokenizing reviews...")
     tokenizer = Tokenizer(num_words=max_words)
@@ -134,19 +144,18 @@ def create_model(max_words, max_len, embedding_dim=100):
     """
     # Create Adam optimizer with recommended parameters
     adam_optimizer = tf.keras.optimizers.Adam(
-        learning_rate=5e-5,  # Default learning rate
-        beta_1=0.9,     # Exponential decay rate for 1st moment estimates
-        beta_2=0.999,   # Exponential decay rate for 2nd moment estimates
-        epsilon=1e-7,   # Small constant for numerical stability
-        amsgrad=False,   # Whether to apply AMSGrad variant
-        clipvalue=1.0   # Clips gradients to the range [-1.0, 1.0]
+        learning_rate=5e-5,
+        beta_1=0.9,
+        beta_2=0.999,
+        epsilon=1e-7,
+        amsgrad=False,
+        clipvalue=1.0
     )
 
     model = Sequential([
-        Embedding(max_words, embedding_dim, input_length=max_len),
-        LSTM(64, return_sequences=True, kernel_regularizer=l2(0.05)),
-        LSTM(32, kernel_regularizer=l2(0.05)),
-        Dense(64, activation='relu', kernel_regularizer=l2(0.05)),
+        Embedding(input_dim = max_words, output_dim = embedding_dim, input_length=max_len),
+        LSTM(64), 
+        Dense(32, activation='relu'),
         Dropout(0.5),
         Dense(1, activation='sigmoid')
     ])
@@ -173,14 +182,12 @@ def train_evaluate_model(model, X_train, X_val, X_test, y_train, y_val, y_test,)
     )
     
     # Train the model
-    class_weights = {0: 1., 1: 1.1}  # Slightly higher weight for positive class
     history = model.fit(
         X_train, y_train,
         epochs=10,
         batch_size=32,
         validation_data=(X_val, y_val),
-        callbacks= early_stopping,
-        class_weight=class_weights
+        callbacks= early_stopping
     )
     
     # Evaluate on test set

@@ -1,5 +1,6 @@
 # Save the code I provided earlier in 'sentiment_classifier.py'
 from neural_network import main
+from neural_network import clean_text
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.text import tokenizer_from_json
@@ -31,6 +32,7 @@ test_reviews = [
 ]
 
 for review in test_reviews:
+    review = clean_text(review)
     result = predict_sentiment(review, model, tokenizer)
     print(f"\nReview: {review}")
     print(result)
