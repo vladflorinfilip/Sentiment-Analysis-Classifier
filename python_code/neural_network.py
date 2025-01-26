@@ -156,7 +156,6 @@ def create_model(max_words, max_len, embedding_dim=100):
         Embedding(input_dim = max_words, output_dim = embedding_dim, input_length=max_len),
         LSTM(64), 
         Dense(32, activation='relu'),
-        Dropout(0.5),
         Dense(1, activation='sigmoid')
     ])
     
@@ -249,7 +248,7 @@ def main():
     
     # Load and preprocess data
     print("Loading and preprocessing data...")
-    X, y, tokenizer = load_and_preprocess_data('./train_data/reviews.csv', MAX_WORDS, MAX_LEN)
+    X, y, tokenizer = load_and_preprocess_data('../train_data/reviews.csv', MAX_WORDS, MAX_LEN)
     
     # Split the data
     print("\nSplitting data into 60-20-20...")
