@@ -30,7 +30,7 @@ def load_and_preprocess_data(csv_file, max_words=10000, max_len=200):
         Maximum number of words to keep in vocabulary
     max_len : int, optional (default=200)
         Maximum length of each sequence
-        
+        cd
     Returns:
     --------
     X : array-like
