@@ -140,29 +140,78 @@ def split_data(X, y, test_size=0.2, val_size=0.2):
 
 def create_model(max_words, max_len, embedding_dim=100):
     """
-    Create and compile the neural network model
+    Create and compile the neural network model with improved architecture
     """
-    # Create Adam optimizer with recommended parameters
+    # Create Adam optimizer with improved parameters
     adam_optimizer = tf.keras.optimizers.Adam(
-        learning_rate=5e-5,
+        learning_rate=1e-4,  # Increased learning rate for faster convergence
         beta_1=0.9,
         beta_2=0.999,
         epsilon=1e-7,
-        amsgrad=False,
-        clipvalue=1.0
+        amsgrad=True,  # Enable AMSGrad variant
+        clipnorm=1.0  # Gradient clipping to prevent exploding gradients
     )
 
+    # Initialize layers with proper initializers
+    initializer = tf.keras.initializers.GlorotUniform()
+
     model = Sequential([
-        Embedding(input_dim = max_words, output_dim = embedding_dim, input_length=max_len),
-        LSTM(64), 
-        Dense(32, activation='relu'),
-        Dense(1, activation='sigmoid')
+        # Embedding layer with proper initialization
+        Embedding(
+            input_dim=max_words,
+            output_dim=embedding_dim,
+            input_length=max_len,
+            embeddings_initializer=initializer
+        ),
+        
+        # Bidirectional LSTM for better context understanding
+        Bidirectional(
+            LSTM(
+                128,  # Increased units for better capacity
+                return_sequences=True,
+                kernel_initializer=initializer,
+                recurrent_initializer=initializer,
+                dropout=0.2,  # Dropout for regularization
+                recurrent_dropout=0.2
+            )
+        ),
+        
+        # Second LSTM layer
+        LSTM(
+            64,
+            kernel_initializer=initializer,
+            recurrent_initializer=initializer,
+            dropout=0.2,
+            recurrent_dropout=0.2
+        ),
+        
+        # Dense layers with proper initialization and regularization
+        Dense(
+            32,
+            activation='relu',
+            kernel_initializer=initializer,
+            kernel_regularizer=tf.keras.regularizers.l2(0.01)
+        ),
+        Dropout(0.3),  # Increased dropout for better regularization
+        
+        # Output layer
+        Dense(
+            1,
+            activation='sigmoid',
+            kernel_initializer=initializer
+        )
     ])
     
+    # Compile model with improved configuration
     model.compile(
         optimizer=adam_optimizer,
         loss='binary_crossentropy',
-        metrics=['accuracy']
+        metrics=[
+            'accuracy',
+            tf.keras.metrics.Precision(),
+            tf.keras.metrics.Recall(),
+            tf.keras.metrics.AUC()
+        ]
     )
     
     return model
