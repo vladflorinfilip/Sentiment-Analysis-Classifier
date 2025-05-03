@@ -11,6 +11,13 @@ myenv/
 # C extensions
 *.so
 
+# VS Code files
+.vscode/*
+
+glove.6B/*
+anaconda_projects/*
+.gitignore
+
 # Distribution / packaging
 .Python
 build/
